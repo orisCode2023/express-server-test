@@ -68,9 +68,13 @@ app.post("/creator/events", async (req, res) => {
             username,
             password
         }
-        EVENTS_DATA.push(newEvent)
-        await writeData(EVENTS_PATH, EVENTS_DATA)
-        res.status(201).json({ msg: "Event created successfully" })
+        const isExistEvent = EVENTS_DATA.find(event => event.eventName === eventName)
+        if (isExistEvent) res.status(400).json({ msg: "cant create event that already exist" })
+        else {
+            EVENTS_DATA.push(newEvent)
+            await writeData(EVENTS_PATH, EVENTS_DATA)
+            res.status(201).json({ msg: "Event created successfully" })
+        }
     }
 })
 
@@ -88,7 +92,7 @@ app.post("/users/tickets/buy", async (req, res) => {
                 eventName,
                 quantity
             }
-            if (isExistEvent.ticketsForSale < quantity) res.status(400).json({ msg: "not enough tickets" })
+            if (isExistEvent.ticketsForSale < quantity) throw new Error("not enough tickets")
             else {
                 RECEIPTS_DATA.push(newReceipts)
                 await writeData(RECEIPTS_PATH, RECEIPTS_DATA)
@@ -97,6 +101,44 @@ app.post("/users/tickets/buy", async (req, res) => {
                 res.status(201).json({ msg: "Tickets purchased successfully" })
             }
         }
+    }
+})
+
+function countTicketsPerUser(data, username) {
+    let count = 0
+    const t = data.filter(user => user.username === username)
+    for (let i = 0; i < t.length; i++) {
+        count += t[i].quantity
+    }
+    return count
+}
+
+function collectingEventsPerUser(data, username) {
+    const events = []
+    const addEvents = data.filter(user => user.username === username)
+    for (let i = 0; i < addEvents.length; i++) {
+        if (!events.includes(addEvents[i].eventName)) {
+            events.push(addEvents[i].eventName)
+        }
+    }
+    return events
+}
+app.get("/users/:username/summary", (req, res) => {
+    const username = req.params.username
+    if (RECEIPTS_DATA.length === 0) {
+        const emptyObj = {
+            totalTicketsBought: 0,
+            events: [],
+            averageTicketsPerEvent: 0
+        }
+        return res.status(404).json({ msg: "data is empty", data: emptyObj })
+    } else {
+        const userSummary = {
+            totalTicketsBought: countTicketsPerUser(RECEIPTS_DATA, username),
+            events: collectingEventsPerUser(EVENTS_DATA, username),
+            averageTicketsPerEvent: countTicketsPerUser(RECEIPTS_DATA, username) / collectingEventsPerUser(EVENTS_DATA, username).length
+        }
+    res.status(200).json({data: userSummary})
     }
 })
 
