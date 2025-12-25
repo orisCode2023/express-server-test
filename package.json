@@ -1,0 +1,27 @@
+{
+  "name": "express-server-week-4",
+  "version": "1.0.0",
+  "description": "ori mark 324074533 Golan",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orisCode2023/express-server-test.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/orisCode2023/express-server-test/issues"
+  },
+  "homepage": "https://github.com/orisCode2023/express-server-test#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "nodemon": "^3.1.11"
+  }
+}
