@@ -34,23 +34,43 @@ async function writeData(path, data) {
 //   }
 // }
 
-// async function validateUser(username, password){
-//     const findUsername = USER_DATA.find(user => user.username === username && user.password === password)
-//     return findUsername || null
-// }
+async function validateUser(username, password) {
+    const findUsername = USERS_DATA.find(user => user.username === username && user.password === password)
+    return findUsername || null
+}
 
 app.post('/user/register', async (req, res) => {
-    const { username , password} = req.body
+    const { username, password } = req.body
     const isExist = USERS_DATA.find(user => user.username === username)
-    if (isExist) res.status(400).json({msg: "user already exist with this username"})
+    if (isExist) res.status(400).json({ msg: "user already exist" })
     else {
         const newUser = {
             username,
             password
         }
-        USERS_DATA.push(newUser)
-        await writeData(USERS_PATH, USERS_DATA)
-        res.status(201).json({msg: "user added succefully", data: newUser})
+        if (!password) res.status(400).json({ msg: "must have password to register" })
+        else {
+            USERS_DATA.push(newUser)
+            await writeData(USERS_PATH, USERS_DATA)
+            res.status(201).json({ msg: "user registered succefully" })
+        }
+    }
+})
+
+app.post("/creator/events", async (req, res) => {
+    const { eventName, ticketsForSale, username, password } = req.body
+    const isValid = await validateUser(username, password)
+    if (!isValid) res.status(400).json({ msg: "not valid user" })
+    else {
+        const newEvent = {
+            eventName,
+            ticketsForSale,
+            username,
+            password
+        }
+    EVENTS_DATA.push(newEvent)
+    await writeData(EVENTS_PATH, EVENTS_DATA)
+    res.status(201).json({ msg: "Event created successfully"})
     }
 })
 
