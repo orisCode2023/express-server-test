@@ -5,7 +5,7 @@ import path from 'path'
 
 
 const app = express()
-const PORT = 8000
+const PORT = process.env.PORT || 8000
 const __dirname = path.resolve();
 const EVENTS_PATH = path.join(__dirname, "data", "events.json");
 const RECEIPTS_PATH = path.join(__dirname, "data", "receipts.json");
@@ -38,7 +38,7 @@ async function validateUser(username, password) {
     const findUsername = USERS_DATA.find(user => user.username === username && user.password === password)
     return findUsername || null
 }
-
+// bonus number 1
 app.post('/user/register', async (req, res) => {
     const { username, password } = req.body
     const isExist = USERS_DATA.find(user => user.username === username)
@@ -46,7 +46,8 @@ app.post('/user/register', async (req, res) => {
     else {
         const newUser = {
             username,
-            password
+            password,
+            role : "user"
         }
         if (!password) res.status(400).json({ msg: "must have password to register" })
         else {
@@ -56,12 +57,13 @@ app.post('/user/register', async (req, res) => {
         }
     }
 })
-
+// bonus number 1
 app.post("/creator/events", async (req, res) => {
     const { eventName, ticketsForSale, username, password } = req.body
     const isValid = await validateUser(username, password)
     if (!isValid) res.status(400).json({ msg: "not valid user" })
     else {
+        if (isValid.role !== "admin") res.status(400).json({ msg: "only admin can create new event " })
         const newEvent = {
             eventName,
             ticketsForSale,
@@ -106,9 +108,9 @@ app.post("/users/tickets/buy", async (req, res) => {
 
 function countTicketsPerUser(data, username) {
     let count = 0
-    const t = data.filter(user => user.username === username)
-    for (let i = 0; i < t.length; i++) {
-        count += t[i].quantity
+    const tickets = data.filter(user => user.username === username)
+    for (let i = 0; i < tickets.length; i++) {
+        count += tickets[i].quantity
     }
     return count
 }
@@ -140,6 +142,48 @@ app.get("/users/:username/summary", (req, res) => {
         }
     res.status(200).json({data: userSummary})
     }
+})
+// bonus number 3
+app.put("/users/:username/return/:eventName", async (req, res) => {
+    const {username, eventName} = req.params
+    const returnEvent = RECEIPTS_DATA.find(user => user.username === username && user.eventName === eventName)
+    if (!returnEvent) res.status(404).json({msg: "not found"})
+    else {
+    const numTicketsBeforeReturn = returnEvent.quantity
+    Object.assign(returnEvent, req.body)
+    await writeData(RECEIPTS_PATH, RECEIPTS_DATA)
+    const updateEventTickets = EVENTS_DATA.find(user => user.username === username && user.eventName === eventName)
+    updateEventTickets.ticketsForSale += numTicketsBeforeReturn
+    await writeData(EVENTS_PATH, EVENTS_DATA)
+    
+    if (req.body.quantity === 0){
+        const recipToDelete = RECEIPTS_DATA.filter(event => event.eventName !== eventName)
+        await writeData(RECEIPTS_PATH, recipToDelete)
+    } 
+    
+    res.status(200).json({msg:"return update succefully"})
+}
+})
+
+// bonus number 2
+app.get("/users/:username1/:eventName/transfer/:username2", async (req, res) => {
+    const {username1, eventName, username2} = req.params
+    const transfereEvent = RECEIPTS_DATA.find(user => user.username === username1 && user.eventName === eventName)
+    const isExist = USERS_DATA.find(user => user.username === username2)
+    if (!transfereEvent || !isExist) res.status(400).json({msg: "not found"})
+    else {
+        const updateUser = {
+            username : username2, 
+            password : isExist.password,
+            eventName,
+            quantity : transfereEvent.quantity
+        }
+    RECEIPTS_DATA.push(updateUser)
+    await writeData(RECEIPTS_PATH, RECEIPTS_DATA)
+    const recipToDelete = RECEIPTS_DATA.filter(user => user.username !== username1)
+    await writeData(RECEIPTS_PATH, recipToDelete)
+    res.status(200).status({msg: "transfer between users successfully"})
+}
 })
 
 app.listen(PORT, () => {

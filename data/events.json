@@ -4,5 +4,17 @@
     "ticketsForSale": 4950,
     "username": "ori",
     "password": "123aba"
+  },
+  {
+    "eventName": "wedding",
+    "ticketsForSale": 432,
+    "username": "ori",
+    "password": "123aba"
+  },
+  {
+    "eventName": "party",
+    "ticketsForSale": 774,
+    "username": "ori",
+    "password": "123aba"
   }
 ]

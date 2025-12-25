@@ -4,5 +4,11 @@
     "password": "123aba",
     "eventName": "Tommorowland",
     "quantity": 50
+  },
+  {
+    "username": "ori",
+    "password": "123aba",
+    "eventName": "party",
+    "quantity": 15
   }
 ]

@@ -1,6 +1,12 @@
 [
   {
     "username": "ori",
-    "password": "123aba"
+    "password": "123aba",
+    "role": "admin"
+  },
+  {
+    "username": "orian",
+    "password": "123abag",
+    "role": "user"
   }
 ]
