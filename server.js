@@ -68,13 +68,37 @@ app.post("/creator/events", async (req, res) => {
             username,
             password
         }
-    EVENTS_DATA.push(newEvent)
-    await writeData(EVENTS_PATH, EVENTS_DATA)
-    res.status(201).json({ msg: "Event created successfully"})
+        EVENTS_DATA.push(newEvent)
+        await writeData(EVENTS_PATH, EVENTS_DATA)
+        res.status(201).json({ msg: "Event created successfully" })
     }
 })
 
-
+app.post("/users/tickets/buy", async (req, res) => {
+    const { username, password, eventName, quantity } = req.body
+    const isValid = await validateUser(username, password)
+    if (!isValid) res.status(400).json({ msg: "not valid user" })
+    else {
+        const isExistEvent = EVENTS_DATA.find(event => event.eventName === eventName)
+        if (!isExistEvent) res.status(400).json({ msg: "no event found" })
+        else {
+            const newReceipts = {
+                username,
+                password,
+                eventName,
+                quantity
+            }
+            if (isExistEvent.ticketsForSale < quantity) res.status(400).json({ msg: "not enough tickets" })
+            else {
+                RECEIPTS_DATA.push(newReceipts)
+                await writeData(RECEIPTS_PATH, RECEIPTS_DATA)
+                isExistEvent.ticketsForSale -= quantity
+                await writeData(EVENTS_PATH, EVENTS_DATA)
+                res.status(201).json({ msg: "Tickets purchased successfully" })
+            }
+        }
+    }
+})
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "username": "ori",
+    "password": "123aba",
+    "eventName": "Tommorowland",
+    "quantity": 50
+  }
+]
