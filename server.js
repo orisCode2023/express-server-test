@@ -25,20 +25,11 @@ async function writeData(path, data) {
     await fs.writeFile(path, JSON.stringify(data, null, 2));
 }
 
-// async function fileExists(filePath) {
-//   try {
-//     await fs.access(filePath, fs.constants.F_OK);
-//     return true;
-//   } catch (error) {
-//     return false;
-//   }
-// }
-
 async function validateUser(username, password) {
     const findUsername = USERS_DATA.find(user => user.username === username && user.password === password)
     return findUsername || null
 }
-// bonus number 1
+
 app.post('/user/register', async (req, res) => {
     const { username, password } = req.body
     const isExist = USERS_DATA.find(user => user.username === username)
@@ -47,7 +38,7 @@ app.post('/user/register', async (req, res) => {
         const newUser = {
             username,
             password,
-            role : "user"
+            role: "user"
         }
         if (!password) res.status(400).json({ msg: "must have password to register" })
         else {
@@ -57,7 +48,7 @@ app.post('/user/register', async (req, res) => {
         }
     }
 })
-// bonus number 1
+
 app.post("/creator/events", async (req, res) => {
     const { eventName, ticketsForSale, username, password } = req.body
     const isValid = await validateUser(username, password)
@@ -140,50 +131,52 @@ app.get("/users/:username/summary", (req, res) => {
             events: collectingEventsPerUser(EVENTS_DATA, username),
             averageTicketsPerEvent: countTicketsPerUser(RECEIPTS_DATA, username) / collectingEventsPerUser(EVENTS_DATA, username).length
         }
-    res.status(200).json({data: userSummary})
+        res.status(200).json({ data: userSummary })
     }
 })
-// bonus number 3
-app.put("/users/:username/return/:eventName", async (req, res) => {
-    const {username, eventName} = req.params
-    const returnEvent = RECEIPTS_DATA.find(user => user.username === username && user.eventName === eventName)
-    if (!returnEvent) res.status(404).json({msg: "not found"})
+
+app.put("/users/return", async (req, res) => {
+    const { username, eventName, quantity } = req.body
+    const returnEvent = RECEIPTS_DATA.findIndex(user => user.username === username && user.eventName === eventName)
+    if (returnEvent === -1) res.status(404).json({ msg: "not found" })
     else {
-    const numTicketsBeforeReturn = returnEvent.quantity
-    Object.assign(returnEvent, req.body)
-    await writeData(RECEIPTS_PATH, RECEIPTS_DATA)
-    const updateEventTickets = EVENTS_DATA.find(user => user.username === username && user.eventName === eventName)
-    updateEventTickets.ticketsForSale += numTicketsBeforeReturn
-    await writeData(EVENTS_PATH, EVENTS_DATA)
-    
-    if (req.body.quantity === 0){
-        const recipToDelete = RECEIPTS_DATA.filter(event => event.eventName !== eventName)
-        await writeData(RECEIPTS_PATH, recipToDelete)
-    } 
-    
-    res.status(200).json({msg:"return update succefully"})
-}
+        const numTicketsBeforeReturn = returnEvent.quantity
+        RECEIPTS_DATA[returnEvent] = {
+            username: username,
+            password: returnEvent.password,
+            eventName: eventName,
+            quantity: quantity
+        }
+        await writeData(RECEIPTS_PATH, RECEIPTS_DATA)
+        const updateEventTickets = EVENTS_DATA.find(user => user.eventName === eventName)
+        if (!updateEventTickets) res.status(404).json({ msg: "event not found" })
+        updateEventTickets.ticketsForSale += (numTicketsBeforeReturn - quantity)
+        await writeData(EVENTS_PATH, EVENTS_DATA)
+
+        if (req.body.quantity === 0) {
+            const recipToDelete = RECEIPTS_DATA.filter(event => event.eventName !== eventName)
+            await writeData(RECEIPTS_PATH, recipToDelete)
+        }
+        res.status(200).json({ msg: "return update succefully" })
+    }
 })
 
-// bonus number 2
-app.get("/users/:username1/:eventName/transfer/:username2", async (req, res) => {
-    const {username1, eventName, username2} = req.params
-    const transfereEvent = RECEIPTS_DATA.find(user => user.username === username1 && user.eventName === eventName)
-    const isExist = USERS_DATA.find(user => user.username === username2)
-    if (!transfereEvent || !isExist) res.status(400).json({msg: "not found"})
+
+app.put("/users/transfer", async (req, res) => {
+    const { username1, eventName, username2 } = req.body
+    const transfereEvent = RECEIPTS_DATA.findIndex(user => user.username === username1 && user.eventName === eventName)
+    const isExist = USERS_DATA.findIndex(user => user.username === username2)
+    if (transfereEvent === -1 || isExist === -1) res.status(400).json({ msg: "not found" })
     else {
-        const updateUser = {
-            username : username2, 
-            password : isExist.password,
-            eventName,
-            quantity : transfereEvent.quantity
+        RECEIPTS_DATA[transfereEvent] = {
+            username: username2,
+            password: USERS_DATA[isExist].password,
+            eventName: eventName,
+            quantity: RECEIPTS_DATA[transfereEvent].quantity
         }
-    RECEIPTS_DATA.push(updateUser)
-    await writeData(RECEIPTS_PATH, RECEIPTS_DATA)
-    const recipToDelete = RECEIPTS_DATA.filter(user => user.username !== username1)
-    await writeData(RECEIPTS_PATH, recipToDelete)
-    res.status(200).status({msg: "transfer between users successfully"})
-}
+        await writeData(RECEIPTS_PATH, RECEIPTS_DATA)
+        res.status(200).json({ msg: "transfer between users successfully" })
+    }
 })
 
 app.listen(PORT, () => {

@@ -6,9 +6,15 @@
     "quantity": 50
   },
   {
+    "username": "orian",
+    "password": "123abag",
+    "eventName": "party",
+    "quantity": 15
+  },
+  {
     "username": "ori",
     "password": "123aba",
-    "eventName": "party",
+    "eventName": "wedding",
     "quantity": 15
   }
 ]
